@@ -15,11 +15,14 @@ class SpoilerText extends StatefulWidget {
   final String text;
 
   @override
-  State<SpoilerText> createState() => _SpoilerTextState();
+  State<SpoilerText> createState() => SpoilerTextState();
 }
 
-class _SpoilerTextState extends State<SpoilerText> with TickerProviderStateMixin {
-  late final SpoilerController _spoilerController = SpoilerController(vsync: this);
+class SpoilerTextState extends State<SpoilerText>
+    with TickerProviderStateMixin {
+  final _key = GlobalKey();
+  late final SpoilerController _spoilerController =
+      SpoilerController(vsync: this);
 
   void _setSpoilerRegions(List<Rect> regions) {
     final Path spoilerMaskPath = Path();
@@ -35,6 +38,15 @@ class _SpoilerTextState extends State<SpoilerText> with TickerProviderStateMixin
     if (oldWidget.config.textSelection != widget.config.textSelection) {
       _spoilerController.updateConfiguration(widget.config);
     }
+  }
+
+  bool toggle() {
+    final ctx = _key.currentContext;
+    if (ctx == null) return false;
+    final renderBox = ctx.findRenderObject() as RenderBox;
+    final Offset centerLocal = renderBox.size.center(Offset.zero);
+    _spoilerController.toggle(centerLocal);
+    return _spoilerController.isEnabled;
   }
 
   @override
@@ -55,6 +67,7 @@ class _SpoilerTextState extends State<SpoilerText> with TickerProviderStateMixin
             }
           },
           child: SpoilerTextPainter(
+            key: _key,
             text: widget.text,
             textSelection: widget.config.textSelection,
             textAlign: widget.config.textAlign ?? TextAlign.start,
@@ -62,7 +75,8 @@ class _SpoilerTextState extends State<SpoilerText> with TickerProviderStateMixin
             onPaint: (canvas, size) {
               if (_spoilerController.isEnabled) {
                 _spoilerController.drawParticles(canvas);
-                canvas.clipPath(_spoilerController.createSplashPathMaskClipper(size));
+                canvas.clipPath(
+                    _spoilerController.createSplashPathMaskClipper(size));
               }
             },
             onInit: _setSpoilerRegions,
@@ -102,7 +116,8 @@ class _SpoilerTextPainterState extends State<SpoilerTextPainter> {
 
   void _extractTextBoundaries(TextPainter textPainter, int offset) {
     if (widget.textSelection != null) {
-      final selectedBoxes = textPainter.getBoxesForSelection(widget.textSelection!);
+      final selectedBoxes =
+          textPainter.getBoxesForSelection(widget.textSelection!);
       for (final box in selectedBoxes) {
         _spoilerRegions.add(box.toRect());
       }
